@@ -1,0 +1,1 @@
+nvcc -std=c++11 main.cu utils.cpp -o main
