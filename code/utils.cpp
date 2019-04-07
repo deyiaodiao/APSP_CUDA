@@ -1,5 +1,6 @@
 #include "utils.h"
 
+#define debug
 using namespace std;
 
 float min(float a, float b)
@@ -9,13 +10,11 @@ float min(float a, float b)
 
 float add(float a,float b)
 {
-	if(a == fmax || b == fmax)
-		return fmax;
-	else
-		return a+b;
+	return a+b;
 }
 
-float* loadGraph(char* filename, int size)
+float* 
+loadGraph(char* filename, int size)
 {
     float* in_dist;
     in_dist = (float*) malloc(sizeof(float)*size*size);
@@ -29,6 +28,37 @@ float* loadGraph(char* filename, int size)
     return in_dist;
 }
 
+bool 
+correct(float* out_dist, float* out_dist_d, int size, float eps)
+{
+    bool res = true;
+    for (int i=0; i<size; i++)
+        for (int j=0; j<size; j++)
+        {
+            if (out_dist[i*size+j] != out_dist_d[i*size+j])
+            {
+#ifdef debug
+                cout<< "row " << i << " col"<< j<< " doesn't match: ";
+                cout<< out_dist[i*size+j] << " vs "<< out_dist_d[i*size+j] <<endl;
+#endif
+                res = false;
+            }
+        }
+#ifdef debug
+    for (int i=0; i<size; i++){
+        for (int j=0; j<size; j++)
+            cout<<out_dist[i*size+j] << ' ';
+        cout<<endl;
+    }
+    cout<<"------------------"<<endl;
+    for (int i=0; i<size; i++){
+        for (int j=0; j<size; j++)
+            cout<<out_dist_d[i*size+j] << ' ';
+        cout<<endl;
+    }
+#endif
+    return res;
+}
 
 // inplace floyd Warshall all pair shortest path algorighm as gold     
 void
