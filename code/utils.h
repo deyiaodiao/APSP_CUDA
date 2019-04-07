@@ -12,6 +12,8 @@ using namespace std;
 
 #define BLOCKSIZE 16
 
+//#define debug
+
 //#define finf numeric_limits<float>::infinity()
 
 #define finf 1e10

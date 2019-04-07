@@ -10,7 +10,7 @@ def sample_k(max):
         
     return k
 
-for n_vertex in [10,20,100,200,500,1000,2000,5000,10000,20000]:
+for n_vertex in [2,4,8,16]:
     for i in range(10):
         p = scipy.stats.poisson
         g = random_graph(n_vertex, lambda: (sample_k(20),sample_k(20)), model="probabilistic-configuration",

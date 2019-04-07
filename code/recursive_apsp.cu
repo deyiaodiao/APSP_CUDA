@@ -21,7 +21,7 @@ do in-place operation on in_dist_d
 */
 void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int total_width)
 {
-    if (m_size<=2)
+    if (m_size<=1)
         return;
     else{
         int new_size = ceil(m_size/2);  // split matrix into A,B,C,D
@@ -35,14 +35,15 @@ void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int 
         int c_height = m_size - new_size;
         int c_width = new_size;
         int d_height = m_size - new_size, d_width = m_size - new_size;
+
+        int grid_size = ceil(float(new_size)/float(BLOCKSIZE));
+        dim3 blocks(grid_size, grid_size);
+        dim3 threads(BLOCKSIZE, BLOCKSIZE);
         // A = A*
         //minplus(B,A,B,add=0); // B = AB
         //minplus(C,C,A,add=0); // C = CA
         //minplus(D,C,B,add=1); // D = D+CB
         recursive_apsp(in_dist_d, new_size, start_x, start_y, total_width);
-        int grid_size = ceil(float(new_size)/float(BLOCKSIZE));
-        dim3 blocks(grid_size, grid_size);
-        dim3 threads(BLOCKSIZE, BLOCKSIZE);
         min_plus <<<blocks, threads>>> (in_dist_d,in_dist_d,in_dist_d, b_height, b_width, a_width, 
             total_width, b_startx, b_starty, a_startx, a_starty, b_startx, b_starty,false);
         min_plus <<<blocks, threads>>> (in_dist_d,in_dist_d,in_dist_d, c_height, c_width, c_width, 
@@ -61,6 +62,7 @@ void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int 
             total_width, c_startx, c_starty, d_startx, d_starty, c_startx, c_starty,false);
         min_plus <<<blocks, threads>>> (in_dist_d,in_dist_d,in_dist_d, a_height, a_width, b_width, 
             total_width, a_startx, a_starty, b_startx, b_starty, c_startx, c_starty,true);
+        return;
     }
 }
 
@@ -77,12 +79,15 @@ __global__ void min_plus(float* A, float* B, float* C, int a_height, int a_width
         for(int i=0; i<b_width; i++)
         {
             b_index = (x+b_startx)*total_width + b_starty + i;
-            c_index = (i+a_startx)*total_width + a_starty + y;
+            c_index = (i+c_startx)*total_width + c_starty + y;
             min_value = fminf(min_value, B[b_index] + C[c_index]);
         }
         if(add){
             min_value = fminf(min_value, A[a_index]);
         }
+#ifdef debug
+        printf("%f ", min_value);
+#endif
         A[a_index] = min_value;
     }
 }

@@ -1,6 +1,5 @@
 #include "utils.h"
 
-#define debug
 using namespace std;
 
 float min(float a, float b)
@@ -25,6 +24,21 @@ loadGraph(char* filename, int size)
     while (graphfile >> weight){
         in_dist[i++] = weight;
     }
+    
+    for(int i=0; i<size; i++){
+        for(int j=0; j<size; j++){
+            if ( (in_dist[i*size+j] < 1e-10) && (i!=j) )
+                in_dist[i*size+j] = finf;
+        }
+    }
+#ifdef debug
+    for (int i=0; i<size; i++){
+        for (int j=0; j<size; j++)
+            cout<<in_dist[i*size+j] << ' ';
+        cout<<endl;
+    }
+#endif
+
     return in_dist;
 }
 
@@ -35,7 +49,7 @@ correct(float* out_dist, float* out_dist_d, int size, float eps)
     for (int i=0; i<size; i++)
         for (int j=0; j<size; j++)
         {
-            if (out_dist[i*size+j] != out_dist_d[i*size+j])
+            if ((out_dist[i*size+j] - out_dist_d[i*size+j]) > eps )
             {
 #ifdef debug
                 cout<< "row " << i << " col"<< j<< " doesn't match: ";
@@ -62,14 +76,14 @@ correct(float* out_dist, float* out_dist_d, int size, float eps)
 
 // inplace floyd Warshall all pair shortest path algorighm as gold     
 void
-computeGold(float * out_dist, float * in_dist, int M_size)
+computeGold(float * out_dist, float * in_dist, int m_size)
 {
-    for (int j = 0; j < M_size; ++j)
-        for (int i = 0; i < M_size; ++i)
-            out_dist[j*M_size + i] = in_dist[j*M_size + i];
+    for (int j = 0; j < m_size; ++j)
+        for (int i = 0; i < m_size; ++i)
+            out_dist[j*m_size + i] = in_dist[j*m_size + i];
 
-    for (int k = 0; k < M_size; ++k)
-        for (int j = 0; j < M_size; ++j)
-            for (int i = 0; i < M_size; ++i)
-                out_dist[j*M_size + i] = min (out_dist[j*M_size + i], add(out_dist[k*M_size + i],out_dist[j*M_size + k]));
+    for (int k = 0; k < m_size; ++k)
+        for (int j = 0; j < m_size; ++j)
+            for (int i = 0; i < m_size; ++i)
+                out_dist[j*m_size + i] = min (out_dist[j*m_size + i], add(out_dist[k*m_size + i],out_dist[j*m_size + k]));
 }
