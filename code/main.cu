@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 
 void test()
 {
-    int n_vertex[9] = {2,10,100,200,500,1000,5000,10000,20000};
+    int n_vertex[10] = {2,10,100,200,500,1000,2000,5000,10000,20000};
     //int n_vertex[3] = {2,10,100};
     char buffer[200];
     int times[2] = {0,0};
