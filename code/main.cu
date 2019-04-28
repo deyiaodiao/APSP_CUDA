@@ -5,7 +5,7 @@
 using namespace std;
 
 void test();
-void single_test(char* graphfile, int m_size, int*);
+void single_test(char* graphfile, int m_size, int*, bool);
 
 int main(int argc, char* argv[])
 {   
@@ -22,12 +22,12 @@ void test()
     results.open("results.txt");
     for (int n=0; n<sizeof(n_vertex)/sizeof(n_vertex[0]); n++){
         sprintf(buffer,"../data/graph_0_%d.txt", n_vertex[n]);
-        single_test(buffer, n_vertex[n], times);
+        single_test(buffer, n_vertex[n], times, true);
         results<< n_vertex[n] <<" " <<times[0]<<" "<<times[1]<<endl;
     }
 }
 
-void single_test(char* graphfile, int m_size, int* times)
+void single_test(char* graphfile, int m_size, int* times, bool gpu_only)
 {
     cout << "load: " << graphfile << endl;
     // load graph adjacent matrix and modify zero to float max
@@ -63,19 +63,24 @@ void single_test(char* graphfile, int m_size, int* times)
 
     out_dist = (float*) malloc(sizeof(float)*m_size*m_size);
     
-    // run apsp in cpu and record time
-    auto start = chrono::steady_clock::now();
-    computeGold(out_dist, in_dist, m_size);
-    auto end = chrono::steady_clock::now();
-    auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
-    
-    // verity the correctness of gpu result
-    bool res = correct(out_dist, out_dist_d, m_size, 0.0001);
+    if (!gpu_only){
+        // run apsp in cpu and record time
+        auto start = chrono::steady_clock::now();
+        computeGold(out_dist, in_dist, m_size);
+        auto end = chrono::steady_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
+        
+        // verity the correctness of gpu result
+        bool res = correct(out_dist, out_dist_d, m_size, 0.0001);
 
-    if (res) cout<<"test pass!"<<endl;
-    else cout<<"test fail!!"<<endl;
-    elapsed.count();
-    cout << "CPU time " << elapsed.count() << " milliseconds." << endl;
+        if (res) cout<<"test pass!"<<endl;
+        else cout<<"test fail!!"<<endl;
+        //elapsed.count();
+        cout << "CPU time " << elapsed.count() << " milliseconds." << endl;
+        times[0] = elapsed.count();
+    }
+    else
+        times[0] = 0.0;
     cout << "GPU time " << gpu_time << " milliseconds." << endl;
     // free memory
     free(in_dist);          in_dist=NULL;
@@ -83,7 +88,6 @@ void single_test(char* graphfile, int m_size, int* times)
     free(out_dist_d);       out_dist_d=NULL;
     cudaFree(in_dist_d);    in_dist_d=NULL;
 
-    times[0] = elapsed.count();
     times[1] = gpu_time;
     return;
 }

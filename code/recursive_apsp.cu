@@ -66,7 +66,7 @@ void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int 
     }
 }
 
-__global__ void min_plus(float* A, float* B, float* C, int a_height, int a_width, int b_width, int total_width,
+__global__ void min_plus_global(float* A, float* B, float* C, int a_height, int a_width, int b_width, int total_width,
         int a_startx, int a_starty, int b_startx, int b_starty, int c_startx, int c_starty, bool add)
 {
     // do we need __syncthreads() ?
@@ -89,5 +89,48 @@ __global__ void min_plus(float* A, float* B, float* C, int a_height, int a_width
         printf("%f ", min_value);
 #endif
         A[a_index] = min_value;
+    }
+}
+
+__global__ void min_plus(float* A, float* B, float* C, int a_height, int a_width, int b_width, int total_width,
+    int a_startx, int a_starty, int b_startx, int b_starty, int c_startx, int c_starty, bool add)
+{   
+    __shared__ float Bs[BLOCKSIZE][BLOCKSIZE];
+    __shared__ float Cs[BLOCKSIZE][BLOCKSIZE];
+    
+    int bx = blockIdx.x; int by = blockIdx.y;
+    int tx = threadIdx.x; int ty = threadIdx.y;
+
+    int Row = by*BLOCKSIZE + ty;
+    int Col = bx*BLOCKSIZE + tx;
+    
+    float min_value  = finf;    //init with finf (not zero...)
+
+    int out_loop = ceilf( float(b_width)/float(BLOCKSIZE) );
+
+    for (int m=0; m<out_loop; m++){
+        int Bs_index = (Row+b_startx)*total_width + m*BLOCKSIZE+tx+b_starty;
+        int Cs_index = (ty+m*BLOCKSIZE+c_startx)*total_width + Col+c_starty;
+
+        if (Row<a_height && (m*BLOCKSIZE+tx)<b_width )
+            Bs[ty][tx] = B[Bs_index];
+        else
+            Bs[ty][tx] = finf;
+        
+        if ( (ty+m*BLOCKSIZE)<b_width && Col<a_width )
+            Cs[ty][tx] = C[Cs_index];
+        else
+            Cs[ty][tx] = finf;
+        __syncthreads();
+
+        for (int k=0; k<BLOCKSIZE; k++)
+            min_value = fminf(Bs[ty][k]+Cs[k][tx], min_value);
+        __syncthreads();
+    }
+    if (Row<a_height && Col<a_width){
+        int A_index = (a_startx+Row)*total_width + a_starty+Col;
+        if (add)
+            min_value = fminf(A[A_index], min_value);
+        A[A_index] = min_value;
     }
 }

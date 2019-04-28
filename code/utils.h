@@ -10,7 +10,7 @@
 
 using namespace std;
 
-#define BLOCKSIZE 16
+#define BLOCKSIZE 16   // 8 seems better
 
 //#define debug
 
