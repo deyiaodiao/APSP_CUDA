@@ -19,10 +19,10 @@ void test()
     char buffer[200];
     int times[2] = {0,0};
     ofstream results;
-    results.open("results.txt");
+    results.open("unroll.txt");
     for (int n=0; n<sizeof(n_vertex)/sizeof(n_vertex[0]); n++){
         sprintf(buffer,"../data/graph_0_%d.txt", n_vertex[n]);
-        single_test(buffer, n_vertex[n], times, true);
+        single_test(buffer, n_vertex[n], times, false);
         results<< n_vertex[n] <<" " <<times[0]<<" "<<times[1]<<endl;
     }
 }
@@ -34,7 +34,7 @@ void single_test(char* graphfile, int m_size, int* times, bool gpu_only)
     float* in_dist;
     float* out_dist;
     in_dist = loadGraph(graphfile, m_size);
-
+    
     float* in_dist_d;
     float* out_dist_d;
     out_dist_d = (float*) malloc(sizeof(float)*m_size*m_size);

@@ -24,11 +24,12 @@ loadGraph(char* filename, int size)
     while (graphfile >> weight){
         in_dist[i++] = weight;
     }
-    
+    int edge = 0;
     for(int i=0; i<size; i++){
         for(int j=0; j<size; j++){
             if ( (in_dist[i*size+j] < 1e-10) && (i!=j) )
                 in_dist[i*size+j] = finf;
+            else edge+=1;
         }
     }
 #ifdef debug
@@ -38,7 +39,7 @@ loadGraph(char* filename, int size)
         cout<<endl;
     }
 #endif
-
+    cout<<"average degree: "<<edge/float(size)<<endl;
     return in_dist;
 }
 

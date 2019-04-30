@@ -4,12 +4,15 @@ import numpy as np
 
 cur_dir = os.path.abspath( os.path.dirname(__file__) )
 result_file = os.path.join(cur_dir, "cpu_results.txt")
-res_list = ['shared_mem']
+res_list = ['floyd_gpu','shared_mem', 'block_size_32', 'recursive_unroll']
+#res_list = []
+
+# global_mem, res_list, cpu_time
+mask = [0,0,0,0,1,1]
 
 m_size = []
 cpu_time = []
 gpu_res = []
-print(np.log(2.718))
 tmp = []
 with open(result_file, 'r') as f:
     lines = f.readlines()
@@ -30,12 +33,27 @@ for file_name in res_list:
             tmp.append(res[2])
     gpu_res.append(tmp)
 
-gpu_res = np.array(gpu_res)
-cpu_time = np.array(cpu_time)
-m_size = np.array(m_size)
-plt.plot(np.log2(m_size), np.log2(cpu_time))
-for gpu_time in gpu_res:
-    plt.plot(np.log2(m_size), np.log2(gpu_time))
 
-plt.legend(['1 core cpu','global_mem']+res_list)
+font1 = {'family' : 'Times New Roman',
+'weight' : 'normal',
+'size'   : 12,}
+
+gpu_res.append(cpu_time)
+gpu_res = np.array(gpu_res)
+#gpu_res = np.array(gpu_res)
+#cpu_time = np.array(cpu_time)
+m_size = np.array(m_size)
+#plt.plot(np.log10(m_size), np.log10(cpu_time))
+for index, gpu_time in enumerate(gpu_res):
+    if mask[index]==1:
+        plt.plot(np.log10(m_size), np.log10(gpu_time))
+        print(gpu_time[-1])
+
+legend = ['global_mem']+res_list+['1 core cpu']
+mask = np.array(mask)
+index = np.where(mask==1)[0]
+plt.legend([legend[le] for le in index])
+plt.xlabel('number of vertices (log space)', font1)
+plt.ylabel('running time in millisecond (log space)', font1)
 plt.show()
+

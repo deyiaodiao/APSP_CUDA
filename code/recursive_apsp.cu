@@ -9,20 +9,55 @@ recursive call cuda kernel
 __global__ void min_plus(float* A, float* B, float* C, int a_height, int a_width, int b_width, int total_width,
     int a_startx, int a_starty, int b_startx, int b_starty, int c_startx, int c_starty, bool add);
 
+__global__ void single_floyd(float*A, int m_size, int start_x, int start_y, int total_width);
+
+__global__ void gpu_floyd_d(float* A, int m_size, int k);
+
+void gpu_floyd(float* A, int m_size);
+
 void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int total_width);
 
 void cuda_apsp(float* in_dist_d, int m_size)
 {
+    //gpu_floyd(in_dist_d, m_size);
     recursive_apsp(in_dist_d, m_size, 0, 0, m_size);
 }
 
+void gpu_floyd(float* A, int m_size)
+{
+    int grid_size = ceil(float(m_size)/float(BLOCKSIZE));
+    dim3 blocks(grid_size, grid_size);
+    dim3 threads(BLOCKSIZE, BLOCKSIZE);
+    for (int k=1; k<m_size; k++)
+        gpu_floyd_d<<<blocks, threads>>> (A, m_size, k);
+    return;
+}
+
+__global__ void gpu_floyd_d(float* A, int m_size, int k)
+{
+    int dx = blockIdx.x;    int dy = blockIdx.y;
+    int tx = threadIdx.x;   int ty = threadIdx.y;
+    
+    int Row = dy*BLOCKSIZE + ty;
+    int Col = dx*BLOCKSIZE + tx;
+
+    if (Row<m_size && Col<m_size){
+        A[Row*m_size + Col] = fminf(A[Row*m_size + k] + A[k*m_size+ Col], A[Row*m_size + Col]);
+    }
+}
 /*
 do in-place operation on in_dist_d
 */
 void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int total_width)
 {
-    if (m_size<=1)
+    if (m_size<=BLOCKSIZE){
+        // for matrix small than blocksize we use floyd-warshall using one block
+        // fast for small graph
+        dim3 blocks(1, 1);
+        dim3 threads(BLOCKSIZE, BLOCKSIZE);
+        single_floyd <<<blocks, threads>>> (in_dist_d, m_size, start_x, start_y, total_width);
         return;
+    }
     else{
         int new_size = ceil(m_size/2);  // split matrix into A,B,C,D
         int a_startx = start_x, a_starty = start_y;
@@ -66,6 +101,35 @@ void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int 
     }
 }
 
+__global__ void single_floyd(float*A, int m_size, int start_x, int start_y, int total_width)
+{
+    __shared__ float As[BLOCKSIZE][BLOCKSIZE];
+    // only one block will be launched
+    int tx = threadIdx.x; int ty = threadIdx.y;
+
+    int Row = ty + start_x;
+    int Col = tx + start_y;
+    // load A to shared memory
+    if (tx<m_size && ty<m_size){
+        As[ty][tx] = A[Row*total_width + Col];
+    }
+    else As[ty][tx] = finf;
+    
+    __syncthreads();
+    //floyd
+    for (int k=0; k<m_size; k++)
+    {
+        As[ty][tx] = fminf(As[ty][k]+As[k][tx], As[ty][tx]);
+        __syncthreads();
+    }
+
+    //save to the original A
+    if (tx<m_size && ty<m_size){
+        A[Row*total_width + Col] = As[ty][tx];
+    }
+}
+
+
 __global__ void min_plus_global(float* A, float* B, float* C, int a_height, int a_width, int b_width, int total_width,
         int a_startx, int a_starty, int b_startx, int b_starty, int c_startx, int c_starty, bool add)
 {
@@ -101,13 +165,13 @@ __global__ void min_plus(float* A, float* B, float* C, int a_height, int a_width
     int bx = blockIdx.x; int by = blockIdx.y;
     int tx = threadIdx.x; int ty = threadIdx.y;
 
-    int Row = by*BLOCKSIZE + ty;
+    int Row = by*BLOCKSIZE + ty;     // Row first to make it more cache friendly
     int Col = bx*BLOCKSIZE + tx;
     
     float min_value  = finf;    //init with finf (not zero...)
 
     int out_loop = ceilf( float(b_width)/float(BLOCKSIZE) );
-
+    
     for (int m=0; m<out_loop; m++){
         int Bs_index = (Row+b_startx)*total_width + m*BLOCKSIZE+tx+b_starty;
         int Cs_index = (ty+m*BLOCKSIZE+c_startx)*total_width + Col+c_starty;
