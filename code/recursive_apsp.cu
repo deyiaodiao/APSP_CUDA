@@ -19,6 +19,7 @@ void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int 
 
 void cuda_apsp(float* in_dist_d, int m_size)
 {
+    
     //gpu_floyd(in_dist_d, m_size);
     recursive_apsp(in_dist_d, m_size, 0, 0, m_size);
 }
@@ -28,7 +29,7 @@ void gpu_floyd(float* A, int m_size)
     int grid_size = ceil(float(m_size)/float(BLOCKSIZE));
     dim3 blocks(grid_size, grid_size);
     dim3 threads(BLOCKSIZE, BLOCKSIZE);
-    for (int k=1; k<m_size; k++)
+    for (int k=0; k<m_size; k++)
         gpu_floyd_d<<<blocks, threads>>> (A, m_size, k);
     return;
 }

@@ -1,4 +1,5 @@
 #include "utils.h"
+#include<cmath>
 
 using namespace std;
 
@@ -50,7 +51,7 @@ correct(float* out_dist, float* out_dist_d, int size, float eps)
     for (int i=0; i<size; i++)
         for (int j=0; j<size; j++)
         {
-            if ((out_dist[i*size+j] - out_dist_d[i*size+j]) > eps )
+            if ( abs(out_dist[i*size+j] - out_dist_d[i*size+j]) > eps )
             {
 #ifdef debug
                 cout<< "row " << i << " col"<< j<< " doesn't match: ";
