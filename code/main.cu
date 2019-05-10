@@ -21,8 +21,8 @@ void test()
     ofstream results;
     results.open("unroll.txt");
     for (int n=0; n<sizeof(n_vertex)/sizeof(n_vertex[0]); n++){
-        sprintf(buffer,"../data/graph_0_%d.txt", n_vertex[n]);
-        single_test(buffer, n_vertex[n], times, true);
+        sprintf(buffer,"../data/graph_5_%d.txt", n_vertex[n]);
+        single_test(buffer, n_vertex[n], times, false);
         results<< n_vertex[n] <<" " <<times[0]<<" "<<times[1]<<endl;
     }
 }
@@ -33,7 +33,19 @@ void single_test(char* graphfile, int m_size, int* times, bool gpu_only)
     // load graph adjacent matrix and modify zero to float max
     float* in_dist;
     float* out_dist;
+    auto start_load = chrono::steady_clock::now();
     in_dist = loadGraph(graphfile, m_size);
+    auto end_load = chrono::steady_clock::now();
+    auto elapsed_load = chrono::duration_cast<chrono::milliseconds>(end_load - start_load);
+    cout<<"graph load time: "<<elapsed_load.count()<<endl;
+
+    
+
+    cudaEvent_t start_GPU, stop_GPU;
+    float gpu_time;
+    cudaEventCreate(&start_GPU);
+    cudaEventCreate(&stop_GPU);
+    cudaEventRecord(start_GPU, 0);
 
     float* in_dist_d;
     float* out_dist_d;
@@ -41,13 +53,6 @@ void single_test(char* graphfile, int m_size, int* times, bool gpu_only)
     cudaMalloc((void**)&in_dist_d, sizeof(float)*m_size*m_size);
     cudaMemcpy(in_dist_d, in_dist, sizeof(float)*m_size*m_size,
                 cudaMemcpyHostToDevice);
-
-
-    cudaEvent_t start_GPU, stop_GPU;
-    float gpu_time;
-    cudaEventCreate(&start_GPU);
-    cudaEventCreate(&stop_GPU);
-    cudaEventRecord(start_GPU, 0);
 
     // cuda compute
     cuda_apsp(in_dist_d, m_size);
@@ -72,8 +77,8 @@ void single_test(char* graphfile, int m_size, int* times, bool gpu_only)
         auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start);
         
         // verity the correctness of gpu result
-        bool res = correct(out_dist, out_dist_d, m_size, 0.0001);
-
+        bool res = correct(out_dist, out_dist_d, m_size, 0.00001);
+        
         if (res) cout<<"test pass!"<<endl;
         else cout<<"test fail!!"<<endl;
         //elapsed.count();
