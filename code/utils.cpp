@@ -18,6 +18,7 @@ loadGraph(char* filename, int size)
 {
     float* in_dist;
     in_dist = (float*) malloc(sizeof(float)*size*size);
+    cout<<"in_dist size: "<<size*size<<endl;
     ifstream graphfile;
     graphfile.open(filename);
     float weight;
@@ -43,6 +44,18 @@ loadGraph(char* filename, int size)
     cout<<"average degree: "<<edge/float(size)<<endl;
     return in_dist;
 }
+
+
+void 
+printMatrix(float* matrix, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            std::cout << matrix[i * cols + j] << "\t"; // 打印矩阵元素，\t 为制表符，用于对齐
+        }
+        std::cout << std::endl; // 打印完一行后换行
+    }
+}
+
 
 bool 
 correct(float* out_dist, float* out_dist_d, int size, float eps)
@@ -78,7 +91,7 @@ correct(float* out_dist, float* out_dist_d, int size, float eps)
 
 // inplace floyd Warshall all pair shortest path algorighm as gold     
 void
-computeGold(float * out_dist, float * in_dist, int m_size)
+computeGold(float *out_dist, float *in_dist, int m_size)
 {
     for (int j = 0; j < m_size; ++j)
         for (int i = 0; i < m_size; ++i)
@@ -87,5 +100,11 @@ computeGold(float * out_dist, float * in_dist, int m_size)
     for (int k = 0; k < m_size; ++k)
         for (int j = 0; j < m_size; ++j)
             for (int i = 0; i < m_size; ++i)
+            {
+                // cout<<out_dist[j*m_size + i]<<'\t'<<add(out_dist[k*m_size + i],out_dist[j*m_size + k])<<endl;
                 out_dist[j*m_size + i] = min (out_dist[j*m_size + i], add(out_dist[k*m_size + i],out_dist[j*m_size + k]));
+                // out_dist[j*m_size + i] = min (out_dist[j*m_size + i], out_dist[k*m_size + i]+out_dist[j*m_size + k]);
+                // cout<<out_dist[j*m_size + i]<<endl;
+            }
+               
 }

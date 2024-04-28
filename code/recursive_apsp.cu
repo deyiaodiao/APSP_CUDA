@@ -20,7 +20,7 @@ void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int 
 void cuda_apsp(float* in_dist_d, int m_size)
 {
     
-    //gpu_floyd(in_dist_d, m_size);
+    // gpu_floyd(in_dist_d, m_size);
     recursive_apsp(in_dist_d, m_size, 0, 0, m_size);
 }
 
@@ -54,9 +54,16 @@ void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int 
     if (m_size<=BLOCKSIZE){
         // for matrix small than blocksize we use floyd-warshall using one block
         // fast for small graph
+        printf("small graph\n");
         dim3 blocks(1, 1);
         dim3 threads(BLOCKSIZE, BLOCKSIZE);
         single_floyd <<<blocks, threads>>> (in_dist_d, m_size, start_x, start_y, total_width);
+        cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess) {
+                printf("CUDA error: %s\n", cudaGetErrorString(error));
+    // 进行适当的错误处理
+}
+
         return;
     }
     else{
@@ -104,6 +111,7 @@ void recursive_apsp(float* in_dist_d, int m_size, int start_x, int start_y, int 
 
 __global__ void single_floyd(float*A, int m_size, int start_x, int start_y, int total_width)
 {
+    
     __shared__ float As[BLOCKSIZE][BLOCKSIZE];
     // only one block will be launched
     int tx = threadIdx.x; int ty = threadIdx.y;
@@ -120,10 +128,12 @@ __global__ void single_floyd(float*A, int m_size, int start_x, int start_y, int 
     //floyd
     for (int k=0; k<m_size; k++)
     {
+        
         As[ty][tx] = fminf(As[ty][k]+As[k][tx], As[ty][tx]);
+        
         __syncthreads();
     }
-
+    printf("calc  As\t%f\n",As[ty][tx]);
     //save to the original A
     if (tx<m_size && ty<m_size){
         A[Row*total_width + Col] = As[ty][tx];
